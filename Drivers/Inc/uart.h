@@ -33,7 +33,7 @@ typedef enum{
 }buad_rate_t;
 
 void usart3_init(void);
-void usart3_tx_char(char ch);
+void usart3_tx_blocking(int ch);
 
 
 #endif /* DRIVERS_INC_UART_H_ */

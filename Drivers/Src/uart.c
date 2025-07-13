@@ -6,13 +6,14 @@
  */
 #include "uart.h"
 
-
-
-
 void usart3_init(void);
-void usart3_tx_char(char ch);
+void usart3_tx_blocking(int ch);
 static uint16_t setBuadRate(uint32_t periphCLK, buad_rate_t baudRate);
 
+int __io_putchar(int ch){
+  usart3_tx_blocking(ch);
+  return ch;
+}
 
 void usart3_init(void){
   RCC->AHB4ENR |= GPIODEN;
@@ -26,7 +27,7 @@ void usart3_init(void){
   USART3->CR1 |= USART_UE;
 }
 
-void usart3_tx_char(char ch){
+void usart3_tx_blocking(int ch){
   while(!(USART3->ISR & USART_ISR_TC)){}
   USART3->TDR = ch;
 }

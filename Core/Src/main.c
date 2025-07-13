@@ -33,9 +33,10 @@ int main(void)
 }
 
 void vTaskPrint(void* pvParameters){
+  int a = 0;
   while(1){
-      usart3_tx_char('a');
-      usart3_tx_char('\n');
+      printf("This is a test string!! - %d\n\r", a);
+      a+=1;
   }
 }
 
