@@ -16,4 +16,12 @@
 #include "timers.h"
 #include "uart.h"
 
+#define PB0MASK		(3 << 0)
+#define PB0OUTPUT	(1 << 0)
+
+void vTaskPrint(void* pvParameters);
+void vTaskBlink(void* pvParameters);
+void vTaskEcho(void* pvParameters);
+void greenLedInit(void);
+
 #endif /* MAIN_H_ */

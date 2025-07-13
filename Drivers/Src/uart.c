@@ -6,8 +6,7 @@
  */
 #include "uart.h"
 
-void usart3_init(void);
-void usart3_tx_blocking(int ch);
+
 static uint16_t setBuadRate(uint32_t periphCLK, buad_rate_t baudRate);
 
 int __io_putchar(int ch){
@@ -31,6 +30,12 @@ void usart3_tx_blocking(int ch){
   while(!(USART3->ISR & USART_ISR_TC)){}
   USART3->TDR = ch;
 }
+
+int usart3_rx_blocking(void){
+  while(!(USART3->ISR & USART_ISR_RXNE_RXFNE)){}
+  return USART3->RDR;
+}
+
 
 static uint16_t setBuadRate(uint32_t periphCLK, buad_rate_t baudRate){
   return (periphCLK / baudRate);

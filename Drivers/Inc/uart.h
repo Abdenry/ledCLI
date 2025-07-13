@@ -27,6 +27,7 @@
 #define USART_RE	(1 <<  2)
 #define USART_UE	(1 <<  0)
 
+
 typedef enum{
   BAUD_9600 = 9600,
   BAUD_115200 = 115200
@@ -34,6 +35,7 @@ typedef enum{
 
 void usart3_init(void);
 void usart3_tx_blocking(int ch);
+int usart3_rx_blocking(void);
 
 
 #endif /* DRIVERS_INC_UART_H_ */
