@@ -30,7 +30,7 @@
    * Bit 10: Status - LED Enabled
    * Bit 11: Status - LED Disabled
    * Bit 12: Status - Blinking Enabled
-   * Bit 7 - 23: Reserved
+   * Bit 13 - 23: Reserved
    */
 #define CTRL_GROUP_0		(1 <<  0)
 #define CTRL_GROUP_1		(1 <<  1)
