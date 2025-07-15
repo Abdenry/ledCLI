@@ -47,7 +47,7 @@ void vTaskPrint(void* pvParameters){
   clearScreen();
   printMainMenu();
   while(1){
-      uxBits = xEventGroupWaitBits(xControlGroup, 0x1C00, pdFALSE, pdFALSE, portMAX_DELAY);
+      uxBits = xEventGroupWaitBits(xControlGroup, 0x1C18, pdFALSE, pdFALSE, portMAX_DELAY);
       if((uxBits & STATUS_LED_ENABLED) != 0){
 	  clearScreen();
 	  printMainMenu();
@@ -70,6 +70,8 @@ void vTaskPrint(void* pvParameters){
 	  printMainMenu();
 	  xEventGroupClearBits(xControlGroup, CMD_CLEAR_SCREEN);
       }else if((uxBits & CMD_INVALID_INPUT) != 0){
+	  clearScreen();
+	  printMainMenu();
 	  printf("Input was not an option please pick select 1, 2 or 3\n");
 	  xEventGroupClearBits(xControlGroup, CMD_INVALID_INPUT);
       }
