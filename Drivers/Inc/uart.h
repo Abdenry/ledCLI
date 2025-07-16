@@ -22,20 +22,14 @@
 #define	AFR8_AF7	(7 <<  0)
 #define AFR9_AF7	(7 <<  4)
 
-#define USART3EN	(1 << 18)
-#define USART_TE	(1 <<  3)
-#define USART_RE	(1 <<  2)
-#define USART_UE	(1 <<  0)
+typedef enum {
+	BAUD_9600 = 9600, BAUD_115200 = 115200
+} buad_rate_t;
 
-
-typedef enum{
-  BAUD_9600 = 9600,
-  BAUD_115200 = 115200
-}buad_rate_t;
-
-void usart3_init(void);
+void usart3_init_blocking(void);
+void usart3_init_interrupt(void);
 void usart3_tx_blocking(int ch);
 int usart3_rx_blocking(void);
-
+int usart3_rx(void);
 
 #endif /* DRIVERS_INC_UART_H_ */

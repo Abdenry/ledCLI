@@ -5,13 +5,11 @@
  *      Author: hiro
  */
 
-
 #include "main.h"
 #include "stm32h7xx_it.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
-void SysTick_Handler(void)
-{
-    xPortSysTickHandler();  // FreeRTOS tick handler
+void SysTick_Handler(void) {
+	xPortSysTickHandler();  // FreeRTOS tick handler
 }
