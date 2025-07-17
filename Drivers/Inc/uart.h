@@ -27,7 +27,7 @@ typedef enum {
 } buad_rate_t;
 
 void usart3_init_blocking(void);
-void usart3_init_interrupt(void);
+void usart3_init_interrupt(bool usingFreeRTOS);
 void usart3_tx_blocking(int ch);
 int usart3_rx_blocking(void);
 int usart3_rx(void);

@@ -21,17 +21,17 @@ TaskHandle_t xPrintTask;
 TaskHandle_t xControlLedTask;
 TaskHandle_t xProcessInputTask;
 EventGroupHandle_t xControlGroup;
-SemaphoreHandle_t xSemaphoreUSARTRX = NULL;
+QueueHandle_t xUSARTQueue;
 
 int main(void) {
-	usart3_init_interrupt();
+	usart3_init_interrupt(true);
 	greenLedInit();
 
 	xControlGroup = xEventGroupCreate();
 	xTaskCreate(vTaskPrint, "vTaskPrint", 1024, NULL, 1, &xPrintTask);
 	xTaskCreate(vTaskLED, "vTaskLED", 1024, NULL, 1, &xControlLedTask);
 	xTaskCreate(vTaskInput, "vTaskInput", 1024, NULL, 1, &xProcessInputTask);
-	xSemaphoreUSARTRX = xSemaphoreCreateBinary();
+	xUSARTQueue = xQueueCreate(10,sizeof(uint32_t));
 
 	vTaskStartScheduler();
 
@@ -76,7 +76,6 @@ void vTaskPrint(void *pvParameters) {
  * TODO:	Find a alternative method for blinking that doesn't induce a UI freeze
  * 		when switching from blinking state to enable/disable state. I.e. blink
  * 		without vTaskDelay
- *
  */
 void vTaskLED(void *pvParameters) {
 	EventBits_t uxBits;
@@ -104,18 +103,11 @@ void vTaskLED(void *pvParameters) {
 	}
 }
 
-/*
- * TODO:	Update UART driver to interrupt so that vTaskInput isn't always
- * 		actively waiting for a char (essentially prevents reaching idle
- * 		state and is always active)
- *
- * 		Have vTaskInput wait for a sempahore -> UART RX interrupts upon receiving a char -> release semaphore from ISR to unblock task
- */
+
 void vTaskInput(void *pvParameters) {
-	uint32_t input = 0;
+	uint32_t input;
 	while (1) {
-		if(xSemaphoreTake(xSemaphoreUSARTRX, portMAX_DELAY) == pdTRUE){
-			input = usart3_rx();
+		if(xQueueReceive(xUSARTQueue, &input, portMAX_DELAY) == pdTRUE){
 			switch (input) {
 			case 49:
 				xEventGroupSetBits(xControlGroup, CMD_ENABLE_LED);
@@ -184,9 +176,9 @@ void resetBlinkState(char *loopedState) {
 void USART3_IRQHandler(void){
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	if(USART3->ISR & USART_ISR_RXNE_RXFNE){
-		xSemaphoreGiveFromISR(xSemaphoreUSARTRX, &xHigherPriorityTaskWoken);
+		uint32_t UARTRX = usart3_rx();
+		xQueueSendFromISR(xUSARTQueue, &UARTRX, &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-		portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
 	}
 }
 
