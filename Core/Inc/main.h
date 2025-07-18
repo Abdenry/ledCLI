@@ -12,12 +12,17 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "stm32h7xx.h"
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
-#include "uart.h"
 #include "event_groups.h"
 #include "queue.h"
+#include "semphr.h"
+
+#include "uart.h"
+#include "timer.h"
+
 
 #define PB0MASK		(3 << 0)
 #define PB0OUTPUT	(1 << 0)

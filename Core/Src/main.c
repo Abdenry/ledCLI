@@ -22,9 +22,12 @@ TaskHandle_t xControlLedTask;
 TaskHandle_t xProcessInputTask;
 EventGroupHandle_t xControlGroup;
 QueueHandle_t xUSARTQueue;
+SemaphoreHandle_t xBlinkLedSemaphore;
 
 int main(void) {
 	usart3_init_interrupt(true);
+	tim2_interrupt_init(true);
+
 	greenLedInit();
 
 	xControlGroup = xEventGroupCreate();
@@ -32,6 +35,7 @@ int main(void) {
 	xTaskCreate(vTaskLED, "vTaskLED", 1024, NULL, 1, &xControlLedTask);
 	xTaskCreate(vTaskInput, "vTaskInput", 1024, NULL, 1, &xProcessInputTask);
 	xUSARTQueue = xQueueCreate(10,sizeof(uint32_t));
+	xBlinkLedSemaphore = xSemaphoreCreateBinary();
 
 	vTaskStartScheduler();
 
@@ -45,7 +49,7 @@ void vTaskPrint(void *pvParameters) {
 	char looped = 0;
 	updateScreen();
 	while (1) {
-		uxBits = xEventGroupWaitBits(xControlGroup, 0x1C18, pdFALSE, pdFALSE,
+		uxBits = xEventGroupWaitBits(xControlGroup, (CMD_INVALID_INPUT | CMD_CLEAR_SCREEN | STATUS_LED_ENABLED | STATUS_LED_DISABLED | STATUS_BLINKING_ENABLED), pdFALSE, pdFALSE,
 		portMAX_DELAY);
 		if ((uxBits & STATUS_LED_ENABLED) != 0) {
 			updateScreen();
@@ -74,31 +78,27 @@ void vTaskPrint(void *pvParameters) {
 
 /*
  * TODO:	Find a alternative method for blinking that doesn't induce a UI freeze
- * 		when switching from blinking state to enable/disable state. I.e. blink
- * 		without vTaskDelay
+ * 		when switching from blinking state to enable/disable state.
  */
 void vTaskLED(void *pvParameters) {
 	EventBits_t uxBits;
-	const TickType_t xDelay = 1000 / portTICK_PERIOD_MS;
 	while (1) {
-		uxBits = xEventGroupWaitBits(xControlGroup, 0x07, pdFALSE, pdFALSE,
-		portMAX_DELAY);
+		uxBits = xEventGroupWaitBits(xControlGroup, (CMD_ENABLE_LED | CMD_DISABLE_LED | CMD_BLINK_LED), pdFALSE, pdFALSE, portMAX_DELAY);
 		if ((uxBits & CMD_ENABLE_LED) != 0) {
 			enableLed();
-			xEventGroupClearBits(xControlGroup, CMD_ENABLE_LED);
-			xEventGroupClearBits(xControlGroup, CMD_BLINK_LED);
+			xEventGroupClearBits(xControlGroup, (CMD_ENABLE_LED | CMD_BLINK_LED));
 			xEventGroupSetBits(xControlGroup, STATUS_LED_ENABLED);
 		} else if ((uxBits & CMD_DISABLE_LED) != 0) {
 			disableLed();
-			xEventGroupClearBits(xControlGroup, CMD_DISABLE_LED);
-			xEventGroupClearBits(xControlGroup, CMD_BLINK_LED);
+			xEventGroupClearBits(xControlGroup, (CMD_DISABLE_LED | CMD_BLINK_LED));
 			xEventGroupSetBits(xControlGroup, STATUS_LED_DISABLED);
 		} else if ((uxBits & CMD_BLINK_LED) != 0) {
-			blinkLed();
-			if ((uxBits & STATUS_BLINKING_ENABLED) == 0) {
-				xEventGroupSetBits(xControlGroup, STATUS_BLINKING_ENABLED);
+			if(xSemaphoreTake(xBlinkLedSemaphore, portMAX_DELAY) == pdTRUE){
+				blinkLed();
+				if ((uxBits & STATUS_BLINKING_ENABLED) == 0) {
+					xEventGroupSetBits(xControlGroup, STATUS_BLINKING_ENABLED);
+				}
 			}
-			vTaskDelay(xDelay);
 		}
 	}
 }
@@ -117,6 +117,7 @@ void vTaskInput(void *pvParameters) {
 				break;
 			case 51:
 				xEventGroupSetBits(xControlGroup, CMD_BLINK_LED);
+				tim2_enable_update();
 				break;
 			case 67:
 				xEventGroupSetBits(xControlGroup, CMD_CLEAR_SCREEN);
@@ -169,6 +170,7 @@ void updateScreen(void) {
 }
 
 void resetBlinkState(char *loopedState) {
+	tim2_disable_update();
 	xEventGroupClearBits(xControlGroup, STATUS_BLINKING_ENABLED);
 	*loopedState = 0;
 }
@@ -180,5 +182,13 @@ void USART3_IRQHandler(void){
 		xQueueSendFromISR(xUSARTQueue, &UARTRX, &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	}
+}
+
+void TIM2_IRQHandler(void){
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	TIM2->SR &= ~TIM_SR_UIF; // Interrupt must be cleared manually
+	xSemaphoreGiveFromISR(xBlinkLedSemaphore, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
 }
 
